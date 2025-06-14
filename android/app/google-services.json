@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "778523845169",
+    "project_id": "iot-water-level-monitori-24dc3",
+    "storage_bucket": "iot-water-level-monitori-24dc3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:778523845169:android:9157f60e6e6e8d2841eb10",
+        "android_client_info": {
+          "package_name": "com.example.iot_water_monitor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo3t4-XNJyp7mELHQbGuzRz4bhQSmQZcI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
