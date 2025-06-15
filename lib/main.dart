@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:iot_water_monitor/screens/auth/login_screen.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -17,10 +18,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'IoT Water Monitor',
-      home: Scaffold(
-        appBar: AppBar(title: Text("Water Level Monitoring")),
-        body: Center(child: Text("Hello, Firebase!")),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      home: const LoginScreen(),
     );
   }
 }
