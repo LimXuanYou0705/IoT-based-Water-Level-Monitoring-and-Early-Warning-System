@@ -12,7 +12,20 @@
           "package_name": "com.example.iot_water_monitor"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "778523845169-426186ihfinsmu9i4uufcpvflmql525i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.iot_water_monitor",
+            "certificate_hash": "85a06ba45476b695d2b1ec98bb832426f87e6671"
+          }
+        },
+        {
+          "client_id": "778523845169-7o2vpube7h5a7f7t2leqd49ped6v6ep9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCo3t4-XNJyp7mELHQbGuzRz4bhQSmQZcI"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "778523845169-7o2vpube7h5a7f7t2leqd49ped6v6ep9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "778523845169-p32abqql94dn84rkr46pgcfqi2pj93nv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.iotWaterMonitor"
+              }
+            }
+          ]
         }
       }
     }
