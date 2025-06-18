@@ -33,7 +33,6 @@ class User {
   // Method to convert a User object to a Map (useful for Firestore)
   Map<String, dynamic> toMap() {
     return {
-      'userId': userId,
       'name': name,
       'email': email,
       'phone': phone,
@@ -50,10 +49,10 @@ class User {
 
   // Method to create a User object from a Firestore document (Map)
   factory User.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
+    final data = doc.data() ?? {};
     return User(
       userId: doc.id,
-      name: data!['name'],
+      name: data['name'],
       email: data['email'],
       phone: data['phone'],
       role: data['role'],
@@ -63,7 +62,7 @@ class User {
       alertChannels: List<String>.from(data['alertChannels']),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       lastLogin: (data['lastLogin'] as Timestamp?)?.toDate(),
-      isPhoneVerified: data['isPhoneVerified']?? false,
+      isPhoneVerified: data['isPhoneVerified'] ?? false,
     );
   }
 }

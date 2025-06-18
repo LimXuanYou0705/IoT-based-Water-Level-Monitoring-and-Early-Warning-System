@@ -38,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Google Sign In')),
       body: Center(
         child: ElevatedButton(
           onPressed: _handleGoogleSignIn,
