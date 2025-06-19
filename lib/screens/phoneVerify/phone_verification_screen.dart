@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../helper/otp_helper.dart';
+import 'otp_verification.dart';
+
 class PhoneVerificationScreen extends StatefulWidget {
   const PhoneVerificationScreen({super.key});
 
@@ -14,7 +17,6 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _phoneController = TextEditingController();
-  String? _countryCode = '+60';
 
   bool _isOTPSent = false;
   bool _isLoading = false;
@@ -22,9 +24,56 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   String _errorMessage = '';
 
   void _sendOTP() async {
-    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _isLoading = true;
+      _isError = false;
+      _errorMessage = '';
+    });
 
     String phone = _phoneController.text.trim();
+
+    if (phone.isEmpty) {
+      setState(() {
+        _isError = true;
+        _errorMessage = 'Please enter your phone number';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (phone.length < 9 || phone.length > 10) {
+      setState(() {
+        _isError = true;
+        _errorMessage = 'Invalid phone number! Must be 9–10 digits after +60.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    String fullPhone = '+60$phone';
+
+    final success = await OtpHelper.sendOtp(fullPhone);
+
+    if (success) {
+      setState(() {
+        _isError = false;
+        _errorMessage = '';
+        _isLoading = false;
+        _isOTPSent = true;
+      });
+      // Navigate to next screen, or show "Code sent"
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const OtpVerificationScreen())
+      );
+    } else {
+      setState(() {
+        _isError = true;
+        _errorMessage = 'Failed to send OTP';
+        _isLoading = false;
+      });
+      return;
+    }
+
   }
 
   void _verifyOTP() async {}
@@ -88,9 +137,10 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                               ),
                             ),
                             inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9]'),
+                              ),
                             ],
-                            validator: _phoneValidate,
                           ),
                         ),
                       ],
@@ -117,15 +167,5 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         ),
       ),
     );
-  }
-
-  String? _phoneValidate(String? value) {
-    if (value == null || value.isEmpty) {
-      setState(() {
-        _isError == true;
-        _errorMessage = 'Please enter your phone number';
-      });
-    }
-    return null;
   }
 }
