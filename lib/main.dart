@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:iot_water_monitor/screens/auth/login_screen.dart';
 import 'package:iot_water_monitor/screens/phoneVerify/phone_verification_screen.dart';
 import 'package:iot_water_monitor/screens/splash/splash_screen.dart';
 import 'package:iot_water_monitor/screens/wrapper.dart';
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const PhoneVerificationScreen(),
+      home: const SplashScreen(),
     );
   }
 }

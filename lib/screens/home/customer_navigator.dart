@@ -67,7 +67,6 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
 
   final _title =[
     "Home",
-    "Chat",
     "Profile"
   ];
 
@@ -81,11 +80,6 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
       icon: Icon(Icons.home_outlined, size: 20,),
       selectedIcon: Icon(Icons.home, size: 20),
       label: 'Home',
-    ),
-    const NavigationDestination(
-      icon: Icon(Icons.chat_outlined, size: 20,),
-      selectedIcon: Icon(Icons.chat, size: 20),
-      label: 'Chat',
     ),
     const NavigationDestination(
       icon: Icon(Icons.person_outline_rounded, size: 20,),

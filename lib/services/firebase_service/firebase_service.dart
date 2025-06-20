@@ -7,6 +7,8 @@ class FirebaseService {
   // collections
   final CollectionReference _userCollection = FirebaseFirestore.instance.collection('users');
 
-
+  Future<void> createUser(AppUser user) async {
+    await _userCollection.doc(user.uid).set(user.toMap());
+  }
 
 }

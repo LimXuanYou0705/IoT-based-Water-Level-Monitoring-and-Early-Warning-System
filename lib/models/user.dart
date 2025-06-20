@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class User {
-  final String userId;
+class AppUser {
+  final String uid;
   final String name;
   final String email;
   final String phone;
@@ -15,8 +15,8 @@ class User {
   final bool isPhoneVerified;
 
   // Constructor
-  User({
-    required this.userId,
+  AppUser({
+    required this.uid,
     required this.name,
     required this.email,
     required this.phone,
@@ -48,10 +48,10 @@ class User {
   }
 
   // Method to create a User object from a Firestore document (Map)
-  factory User.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory AppUser.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
-    return User(
-      userId: doc.id,
+    return AppUser(
+      uid: doc.id,
       name: data['name'],
       email: data['email'],
       phone: data['phone'],

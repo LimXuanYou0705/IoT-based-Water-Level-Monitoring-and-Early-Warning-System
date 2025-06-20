@@ -1,6 +1,15 @@
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../helper/otp_helper.dart';
+import '../../models/user.dart';
+import '../../services/firebase_service/auth_service.dart';
+import '../../services/firebase_service/firebase_service.dart';
+import '../auth/login_screen.dart';
+import '../home/customer_navigator.dart';
+import '../loading/loading_screen.dart';
 
 class PhoneVerificationScreen extends StatefulWidget {
   const PhoneVerificationScreen({super.key});
@@ -20,8 +29,16 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
   bool _isLoading = false;
   bool _isError = false;
   String _errorMessage = '';
+  String fullPhone = '';
 
-  void _sendOTP() async {
+  bool _isResending = false;
+  bool _resendDisabled = false;
+  int _resendCooldown = 60;
+  Timer? _cooldownTimer;
+
+  Future<void> _sendOTP() async {
+    FocusScope.of(context).unfocus();
+
     setState(() {
       _isLoading = true;
       _isError = false;
@@ -48,39 +65,143 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
       return;
     }
 
-    String fullPhone = '+60$phone';
+    fullPhone = '+60$phone';
 
-    final success = await OtpHelper.sendOtp(fullPhone);
+    final result = await OtpHelper.sendOtp(fullPhone);
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('OTP sent successfully!'),
-        ),
-      );
+    if (result == 'success') {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('OTP sent successfully!')));
       setState(() {
         _isError = false;
         _errorMessage = '';
         _isLoading = false;
         _isOTPSent = true;
+        _startCooldown();
+      });
+    } else if (result == 'cooldown') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please wait before resending OTP.')),
+      );
+
+      setState(() {
+        _isError = true;
+        _isLoading = false;
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to send OTP. Please try again.'),
-        ),
+        const SnackBar(content: Text('Failed to send OTP. Please try again.')),
       );
       setState(() {
         _isError = true;
-        _errorMessage = 'Failed to send OTP';
         _isLoading = false;
         _isOTPSent = false;
       });
     }
   }
 
-  void _verifyOTP(String otp) async {
+  void _startCooldown() {
+    _resendDisabled = true;
+    _resendCooldown = 60;
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        _resendCooldown--;
+        if (_resendCooldown == 0) {
+          _resendDisabled = false;
+          timer.cancel();
+        }
+      });
+    });
+  }
 
+  Future<bool> _verifyOTP(String enteredOtp) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => LoadingScreen(),
+    );
+
+    final result = await OtpHelper.verifyOtp(fullPhone, enteredOtp);
+
+    Navigator.of(context).pop();
+
+    switch (result) {
+      case 'success':
+        final user = FirebaseAuth.instance.currentUser!;
+        final appUser = AppUser(
+          uid: user.uid,
+          phone: fullPhone,
+          name: user.displayName ?? '',
+          email: user.email ?? '',
+          role: 'user',
+          contributionScore: 0,
+          status: 'active',
+          alertChannels: [],
+          createdAt: DateTime.now(),
+          isPhoneVerified: true,
+        );
+
+        try {
+          final _firebaseService = FirebaseService();
+
+          await _firebaseService.createUser(appUser);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const CustomerNavigator()),
+            (route) => false,
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to save user data: ${e.toString()}"),
+            ),
+          );
+          return false;
+        }
+        break;
+      case 'expired':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP expired. Please try again.')),
+        );
+        break;
+      case 'invalid':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Incorrect OTP. Please try again.')),
+        );
+        break;
+      case 'not_found':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No OTP was sent to this number.')),
+        );
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('An error occurred. Please try again.')),
+        );
+    }
+
+    return false;
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    for (var controller in _otpControllers) {
+      controller.dispose();
+    }
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
+    _cooldownTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -128,9 +249,12 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 decoration: BoxDecoration(
                   border: Border.all(color: Theme.of(context).hintColor),
                   borderRadius: BorderRadius.circular(10),
-                  color: Theme.of(context).brightness == Brightness.light
-                      ? const Color(0xFFF7F8FC)
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
+                  color:
+                      Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFFF7F8FC)
+                          : Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                 ),
                 alignment: Alignment.center,
                 child: Row(
@@ -176,22 +300,36 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
         _isError
             ? Text(_errorMessage, style: TextStyle(color: Colors.red))
             : SizedBox.shrink(),
+        const SizedBox(height: 10),
+        TextButton(
+          onPressed: () async {
+            try {
+              final _authService = AuthService();
+
+              _authService.signOut();
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Error signing out: ${e.toString()}")),
+              );
+            }
+          },
+          child: const Text(
+            "Return to Login Screen",
+            style: TextStyle(color: Colors.blue),
+          ),
+        ),
       ],
     );
   }
 
   final List<TextEditingController> _otpControllers = List.generate(
     6,
-        (index) => TextEditingController(),
+    (index) => TextEditingController(),
   );
-  final List<FocusNode> _focusNodes = List.generate(
-    6,
-        (index) => FocusNode(),
-  );
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
   // Widget for the OTP verification screen
   Widget _buildOtpVerificationScreen() {
-
     bool isOtpComplete() {
       return _otpControllers.every((controller) => controller.text.isNotEmpty);
     }
@@ -240,7 +378,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
                 ),
                 color:
                     _otpControllers[index].text.isNotEmpty
-                        ? Color(0xFF36B6FD).withOpacity(0.1)
+                        ? Color(0xFF36B6FD).withAlpha(26)
                         : Colors.white,
               ),
               child: TextFormField(
@@ -289,14 +427,16 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
           child: ElevatedButton(
             onPressed:
                 isOtpComplete()
-                    ? () {
+                    ? () async {
                       String otp =
                           _otpControllers
                               .map((controller) => controller.text)
                               .join();
-                      // Handle OTP verification logic
                       print("OTP: $otp");
-                      _verifyOTP(otp);
+                      bool isVerified = await _verifyOTP(otp);
+                      if (!isVerified) {
+                        clearOtpFields();
+                      }
                     }
                     : null,
             style: ElevatedButton.styleFrom(
@@ -319,18 +459,37 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
 
         // Resend Button
         TextButton(
-          onPressed: () {
-            // Handle resend OTP logic here
-            clearOtpFields();
-          },
-          child: Text(
-            'Resend OTP',
-            style: TextStyle(
-              color: Color(0xFF36B6FD),
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          onPressed:
+              _resendDisabled || _isResending
+                  ? null
+                  : () async {
+                    setState(() => _isResending = true);
+                    clearOtpFields();
+                    await _sendOTP();
+                    setState(() => _isResending = false);
+                  },
+          child:
+              _isResending
+                  ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF36B6FD),
+                      ),
+                    ),
+                  )
+                  : Text(
+                    _resendDisabled
+                        ? 'Resend in $_resendCooldown s'
+                        : 'Resend OTP',
+                    style: TextStyle(
+                      color: _resendDisabled ? Colors.grey : Color(0xFF36B6FD),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
         ),
       ],
     );

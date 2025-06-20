@@ -25,8 +25,14 @@ class AuthService {
 
   // Sign Out
   Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+    try {
+      await _auth.signOut();
+
+      await _googleSignIn.signOut();
+    } catch (e) {
+      print("Error during sign-out: $e");
+      throw Exception("Failed to sign out: $e");
+    }
   }
 
   // Current User
