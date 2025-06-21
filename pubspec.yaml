@@ -41,6 +41,7 @@ dependencies:
   http: ^1.4.0
   flutter_native_splash: ^2.4.6
   shared_preferences: ^2.5.3
+  wave: ^0.2.2
 
 dev_dependencies:
   flutter_test:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:iot_water_monitor/screens/users/user/community_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/home_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/profile_screen.dart';
 
@@ -45,7 +46,7 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
                   labelTextStyle: WidgetStateProperty.all(
                     const TextStyle(fontSize: 10),
                   ),
-                  height: MediaQuery.of(context).size.height * 0.07,
+                  height: MediaQuery.of(context).size.height * 0.1,
                 )
             ),
             child: NavigationBar(
@@ -66,12 +67,14 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
   }
 
   final _title =[
-    "Home",
+    "",
+    "Community",
     "Profile"
   ];
 
   final _pages = [
     const HomeScreen(),
+    const CommunityScreen(),
     const ProfileScreen(),
   ];
 
@@ -80,6 +83,11 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
       icon: Icon(Icons.home_outlined, size: 20,),
       selectedIcon: Icon(Icons.home, size: 20),
       label: 'Home',
+    ),
+    const NavigationDestination(
+      icon: Icon(Icons.people_alt_outlined, size: 20,),
+      selectedIcon: Icon(Icons.people_alt, size: 20),
+      label: 'Community',
     ),
     const NavigationDestination(
       icon: Icon(Icons.person_outline_rounded, size: 20,),
