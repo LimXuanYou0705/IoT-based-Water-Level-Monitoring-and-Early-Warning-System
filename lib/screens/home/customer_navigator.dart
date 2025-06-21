@@ -3,6 +3,8 @@ import 'package:iot_water_monitor/screens/users/user/community_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/home_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/profile_screen.dart';
 
+import '../sensors/sensor_data_screen.dart';
+
 class CustomerNavigator extends StatefulWidget {
   const CustomerNavigator({super.key});
 
@@ -74,7 +76,7 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
 
   final _pages = [
     const HomeScreen(),
-    const CommunityScreen(),
+     SensorDataScreen(),
     const ProfileScreen(),
   ];
 
