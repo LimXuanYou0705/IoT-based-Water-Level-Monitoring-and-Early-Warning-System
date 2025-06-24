@@ -1,51 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:iot_water_monitor/screens/users/user/wave_screen.dart';
-
+import '../../../models/thresholds.dart';
 import '../../../services/firebase_service/firebase_service.dart';
+import 'home_screen_body.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreen extends StatelessWidget {
   final FirebaseService _firebaseService = FirebaseService();
+
+  HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(18.0),
-          child: Column(
-            children: [
-              Text(
-                'Real-Time Water Level',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              StreamBuilder<double>(
-                stream: _firebaseService.getLatestWaterLevel(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const CircularProgressIndicator();
-                  }
-                  final distance = snapshot.data!;
-                  final normalizedLevel = normalize(distance, 20, 70);
+      body: StreamBuilder<double>(
+        stream: _firebaseService.getLatestWaterLevel(),
+        builder: (context, distanceSnapshot) {
+          if (!distanceSnapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
 
-                  return WaveWidget(height: 450, level: normalizedLevel);
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+          final distance = distanceSnapshot.data!;
+
+          return StreamBuilder<Thresholds>(
+            stream: _firebaseService.getThresholds(),
+            builder: (context, thresholdSnapshot) {
+              if (!thresholdSnapshot.hasData) {
+                return Center(child: CircularProgressIndicator());
+              }
+
+              final thresholds = thresholdSnapshot.data!;
+
+              return HomeScreenBody(distance: distance, thresholds: thresholds);
+            },
+          );
+        },
       ),
     );
-  }
-  double normalize(double distance, double min, double max) {
-    return ((max - distance) / (max - min)).clamp(0.0, 1.0);
   }
 }

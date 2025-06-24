@@ -28,6 +28,10 @@ class SensorDataScreen extends StatelessWidget {
 
           final sensorDataList = snapshot.data ?? [];
 
+          if (sensorDataList.isEmpty) {
+            return Center(child: Text('No sensor data found.'));
+          }
+
           return ListView.builder(
             itemCount: sensorDataList.length,
             itemBuilder: (context, index) {
@@ -39,7 +43,7 @@ class SensorDataScreen extends StatelessWidget {
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Danger: ${sensorData.danger ? 'Yes' : 'No'}'),
+                      Text('Danger: ${sensorData.level}'),
                       Text(
                         'Timestamp: ${formatTimestamp(sensorData.timestamp)}',
                       ),

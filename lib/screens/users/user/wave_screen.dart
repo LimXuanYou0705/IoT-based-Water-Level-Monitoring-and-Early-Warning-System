@@ -110,17 +110,17 @@ class MultiWavePainter extends CustomPainter {
     _drawWave(
       canvas,
       size,
-      color: Colors.blue[100]!,
-      waveHeight: 19,
-      speed: 1.1,
+      color: Color(0xFF2496FF).withAlpha(90),
+      waveHeight: 8,
+      speed: 1.4,
       yOffset: baseOffset,
     );
 
     _drawWave(
       canvas,
       size,
-      color: Colors.blue[200]!,
-      waveHeight: 20,
+      color: Color(0xFF2496FF).withAlpha(128),
+      waveHeight: 6,
       speed: -1.2,
       yOffset: baseOffset + 2,
     );

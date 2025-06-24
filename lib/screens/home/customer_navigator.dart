@@ -3,7 +3,9 @@ import 'package:iot_water_monitor/screens/users/user/community_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/home_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/profile_screen.dart';
 
-import '../sensors/sensor_data_screen.dart';
+import '../../services/firebase_service/firebase_service.dart';
+import '../alert/alert_history_screen.dart';
+import '../alert/sensor_data_screen.dart';
 
 class CustomerNavigator extends StatefulWidget {
   const CustomerNavigator({super.key});
@@ -13,12 +15,19 @@ class CustomerNavigator extends StatefulWidget {
 }
 
 class _CustomerNavigatorState extends State<CustomerNavigator> {
+  final _firebaseService = FirebaseService();
   int _selectedIndex = 0;
+  List<Widget> _pages = [];
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    _pages = [
+      HomeScreen(),
+      SensorDataScreen(),
+      const ProfileScreen(),
+    ];
   }
 
   @override
@@ -27,29 +36,77 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
       appBar: AppBar(
         scrolledUnderElevation: 0.0,
         automaticallyImplyLeading: false,
-        elevation:0,
+        elevation: 0,
         title: Text(_title[_selectedIndex]),
         centerTitle: true,
+        actions: [
+          StreamBuilder<int>(
+            stream: _firebaseService.getUnseenAlertCount(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.notifications,
+                      color: Color(0xFFFAB005),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AlertHistoryScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFD32F2F),
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Container(
-            height: 1,
-            color: Theme.of(context).colorScheme.outline,
-          ),
+          Container(height: 1, color: Theme.of(context).colorScheme.outline),
           Theme(
             data: Theme.of(context).copyWith(
-                navigationBarTheme: NavigationBarThemeData(
-                  labelTextStyle: WidgetStateProperty.all(
-                    const TextStyle(fontSize: 10),
-                  ),
-                  height: MediaQuery.of(context).size.height * 0.1,
-                )
+              navigationBarTheme: NavigationBarThemeData(
+                labelTextStyle: WidgetStateProperty.all(
+                  const TextStyle(fontSize: 10),
+                ),
+                height: MediaQuery.of(context).size.height * 0.1,
+              ),
             ),
             child: NavigationBar(
               indicatorColor: Theme.of(context).colorScheme.secondary,
@@ -68,32 +125,28 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
     );
   }
 
-  final _title =[
-    "",
-    "Community",
-    "Profile"
-  ];
+  final _title = ["Home", "Community", "Profile"];
 
-  final _pages = [
-    const HomeScreen(),
-     SensorDataScreen(),
-    const ProfileScreen(),
-  ];
+  // final _pages = [
+  //   const HomeScreen(),
+  //   SensorDataScreen(),
+  //   const ProfileScreen(),
+  // ];
 
   final _navBarItems = [
     const NavigationDestination(
-      icon: Icon(Icons.home_outlined, size: 20,),
+      icon: Icon(Icons.home_outlined, size: 20),
       selectedIcon: Icon(Icons.home, size: 20),
       label: 'Home',
     ),
     const NavigationDestination(
-      icon: Icon(Icons.people_alt_outlined, size: 20,),
+      icon: Icon(Icons.people_alt_outlined, size: 20),
       selectedIcon: Icon(Icons.people_alt, size: 20),
       label: 'Community',
     ),
     const NavigationDestination(
-      icon: Icon(Icons.person_outline_rounded, size: 20,),
-      selectedIcon: Icon(Icons.person_rounded, size: 20,),
+      icon: Icon(Icons.person_outline_rounded, size: 20),
+      selectedIcon: Icon(Icons.person_rounded, size: 20),
       label: 'Profile',
     ),
   ];
