@@ -51,7 +51,7 @@ class _WaveWidgetState extends State<WaveWidget> with TickerProviderStateMixin {
   void didUpdateWidget(WaveWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Animate to new level when widget.level changes
+    // Animate to new level when widgets.level changes
     if (oldWidget.level != widget.level) {
       _levelAnimation = Tween<double>(
         begin: _currentLevel,

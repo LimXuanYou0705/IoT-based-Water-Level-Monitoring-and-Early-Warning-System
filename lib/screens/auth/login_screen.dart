@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/firebase_service/auth_service.dart';
+import '../../services/firebase_service/firebase_service.dart';
 import '../loading/loading_screen.dart';
-import '../phoneVerify/phone_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +12,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
+  final FirebaseService _firebaseService = FirebaseService();
 
   void _handleGoogleSignIn() async {
     try {
@@ -23,13 +24,19 @@ class _LoginScreenState extends State<LoginScreen> {
       print("Signing in with Google...");
       final userCredential = await _authService.signInWithGoogle();
 
-      if (!mounted) return; // If widget is no longer in the tree, stop here.
+      if (!mounted) return; // If widgets is no longer in the tree, stop here.
       Navigator.of(context).pop();
 
       if (userCredential == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sign in cancelled")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Sign in cancelled")));
+      } else {
+        final userId = userCredential.user?.uid;
+        if (userId != null) {
+          await _firebaseService.saveFcmToken(userId);
+          print("FCM token saved for $userId");
+        }
       }
     } catch (e) {
       Navigator.of(context).pop();

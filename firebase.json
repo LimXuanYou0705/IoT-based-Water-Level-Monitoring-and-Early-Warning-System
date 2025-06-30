@@ -1,1 +1,59 @@
-{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"flutter":{"platforms":{"android":{"default":{"projectId":"iot-water-level-monitori-24dc3","appId":"1:778523845169:android:9157f60e6e6e8d2841eb10","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"iot-water-level-monitori-24dc3","configurations":{"android":"1:778523845169:android:9157f60e6e6e8d2841eb10","ios":"1:778523845169:ios:3911eb6d488ff59141eb10","macos":"1:778523845169:ios:3911eb6d488ff59141eb10","web":"1:778523845169:web:366720e53335de2741eb10","windows":"1:778523845169:web:03564734a1bd403b41eb10"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "iot-water-level-monitori-24dc3",
+          "appId": "1:778523845169:android:9157f60e6e6e8d2841eb10",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "iot-water-level-monitori-24dc3",
+          "configurations": {
+            "android": "1:778523845169:android:9157f60e6e6e8d2841eb10",
+            "ios": "1:778523845169:ios:3911eb6d488ff59141eb10",
+            "macos": "1:778523845169:ios:3911eb6d488ff59141eb10",
+            "web": "1:778523845169:web:366720e53335de2741eb10",
+            "windows": "1:778523845169:web:03564734a1bd403b41eb10"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}

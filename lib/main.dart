@@ -1,11 +1,19 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:iot_water_monitor/screens/alert/alert_history_screen.dart';
 import 'package:iot_water_monitor/screens/auth/login_screen.dart';
 import 'package:iot_water_monitor/screens/phoneVerify/phone_verification_screen.dart';
 import 'package:iot_water_monitor/screens/splash/splash_screen.dart';
 import 'package:iot_water_monitor/screens/wrapper.dart';
+import 'package:iot_water_monitor/services/firebase_service/firebase_messaging_service.dart';
 import 'firebase_options.dart';
 import 'package:flutter/services.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+FlutterLocalNotificationsPlugin();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,9 +24,30 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  // Initialize Local Notifications
+  const AndroidInitializationSettings initializationSettingsAndroid =
+  AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // Initialize Firebase Messaging Listener
+  await initFirebaseMessaging();
+
   runApp(const MyApp());
 }
 
@@ -28,6 +57,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
+      title: 'Water Monitor',
       theme: ThemeData.light().copyWith(
         scaffoldBackgroundColor: Color(0xFFF7F8FC), // Light background
         colorScheme: ColorScheme.fromSeed(
@@ -45,7 +76,11 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const SplashScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const SplashScreen(),
+        '/alerts': (context) => const AlertHistoryScreen(),
+      },
     );
   }
 }

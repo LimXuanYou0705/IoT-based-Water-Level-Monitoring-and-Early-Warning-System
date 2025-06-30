@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:iot_water_monitor/screens/users/user/wave_screen.dart';
@@ -5,10 +6,27 @@ import '../../../models/thresholds.dart';
 import '../../../services/firebase_service/firebase_service.dart';
 import 'home_screen_body.dart';
 
-class HomeScreen extends StatelessWidget {
-  final FirebaseService _firebaseService = FirebaseService();
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
-  HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final FirebaseService _firebaseService = FirebaseService();
+  DateTime currentTime = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+
+    Timer.periodic(Duration(seconds: 60), (_) {
+      setState(() {
+        currentTime = DateTime.now();
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +49,19 @@ class HomeScreen extends StatelessWidget {
 
               final thresholds = thresholdSnapshot.data!;
 
-              return HomeScreenBody(distance: distance, thresholds: thresholds);
+              return StreamBuilder<bool>(
+                stream: _firebaseService.getSensorStatus(),
+                builder: (context, sensorStatusSnapshot) {
+                  final sensorStatus = sensorStatusSnapshot.data ?? false;
+
+                  return HomeScreenBody(
+                    distance: distance,
+                    thresholds: thresholds,
+                    currentTime: currentTime,
+                    sensorStatus: sensorStatus ? 'Online' : 'Offline',
+                  );
+                },
+              );
             },
           );
         },

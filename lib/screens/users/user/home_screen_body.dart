@@ -7,11 +7,15 @@ import '../../../models/thresholds.dart';
 class HomeScreenBody extends StatefulWidget {
   final double distance;
   final Thresholds thresholds;
+  final DateTime currentTime;
+  final String sensorStatus;
 
   const HomeScreenBody({
     super.key,
     required this.distance,
     required this.thresholds,
+    required this.currentTime,
+    required this.sensorStatus,
   });
 
   @override
@@ -117,7 +121,7 @@ class _HomeScreenBodyState extends State<HomeScreenBody> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Sensor Status: Online',
+                      'Sensor Status: ${widget.sensorStatus}',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,

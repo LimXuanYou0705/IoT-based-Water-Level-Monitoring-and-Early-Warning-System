@@ -30,7 +30,6 @@ class AppUser {
     required this.isPhoneVerified,
   });
 
-  // Method to convert a User object to a Map (useful for Firestore)
   Map<String, dynamic> toMap() {
     return {
       'name': name,
@@ -47,22 +46,20 @@ class AppUser {
     };
   }
 
-  // Method to create a User object from a Firestore document (Map)
-  factory AppUser.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? {};
+  factory AppUser.fromMap(Map<String, dynamic> map, String id) {
     return AppUser(
-      uid: doc.id,
-      name: data['name'],
-      email: data['email'],
-      phone: data['phone'],
-      role: data['role'],
-      profilePicture: data['profilePicture'],
-      contributionScore: data['contributionScore'],
-      status: data['status'],
-      alertChannels: List<String>.from(data['alertChannels']),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      lastLogin: (data['lastLogin'] as Timestamp?)?.toDate(),
-      isPhoneVerified: data['isPhoneVerified'] ?? false,
+      uid: id,
+      name: map['name'],
+      email: map['email'],
+      phone: map['phone'],
+      role: map['role'],
+      profilePicture: map['profilePicture'],
+      contributionScore: map['contributionScore'],
+      status: map['status'],
+      alertChannels: List<String>.from(map['alertChannels']),
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      lastLogin: (map['lastLogin'] as Timestamp?)?.toDate(),
+      isPhoneVerified: map['isPhoneVerified'] ?? false,
     );
   }
 }

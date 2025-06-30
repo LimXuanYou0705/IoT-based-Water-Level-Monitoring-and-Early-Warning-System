@@ -1,6 +1,8 @@
+import 'package:cloud_firestore_platform_interface/src/timestamp.dart';
 import 'package:flutter/material.dart';
 
 import '../../helper/date_helper.dart';
+import '../../models/Alert.dart';
 import '../../models/sensor_data.dart';
 import '../../services/firebase_service/firebase_service.dart';
 
@@ -18,15 +20,15 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    FirebaseService().markAllAlertsAsSeen();
+    _firebaseService.markAllAlertsAsSeen();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Alert History'), centerTitle: true),
-      body: StreamBuilder<List<SensorData>>(
-        stream: _firebaseService.getAlertHistory(),
+      body: StreamBuilder<List<Alert>>(
+        stream: _firebaseService.getAlerts(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -49,7 +51,7 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
               Color iconColor;
               IconData iconData;
 
-              switch (alert.level) {
+              switch (alert.alertLevel) {
                 case 'DANGER':
                   iconColor = Colors.red;
                   iconData = Icons.warning;
@@ -67,14 +69,22 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
                 margin: EdgeInsets.all(8),
                 child: ListTile(
                   leading: Icon(iconData, color: iconColor),
-                  title: Text(
-                    '${alert.level} - ${alert.distance.toStringAsFixed(2)} cm',
+                  title: Text(formatTimestamp(alert.timestamp as Timestamp)),
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: alert.acknowledged
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : const Icon(Icons.circle, size: 12, color: Colors.grey),
                   ),
-                  subtitle: Text(
-                    alert.timestamp != null
-                        ? formatTimestamp(alert.timestamp)
-                        : 'No timestamp',
-                  ),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: Text('Alert Details'),
+                        content: Text(alert.message),
+                      ),
+                    );
+                  },
                 ),
               );
             },
