@@ -33,7 +33,7 @@ class FirebaseService {
   Stream<bool> getSensorStatus() {
     return FirebaseFirestore.instance
         .collection('sensorStatus')
-        .doc('status')
+        .doc('sensor_001')
         .snapshots()
         .map((doc) => doc.data()?['online'] ?? false);
   }

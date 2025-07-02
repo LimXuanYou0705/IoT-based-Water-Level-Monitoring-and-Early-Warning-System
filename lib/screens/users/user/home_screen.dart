@@ -22,9 +22,11 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
 
     Timer.periodic(Duration(seconds: 60), (_) {
-      setState(() {
-        currentTime = DateTime.now();
-      });
+      if (mounted) {
+        setState(() {
+          currentTime = DateTime.now();
+        });
+      }
     });
   }
 

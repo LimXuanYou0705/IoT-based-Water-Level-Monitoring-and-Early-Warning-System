@@ -13,19 +13,24 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   final FirebaseService _firebaseService = FirebaseService();
+  BuildContext? dialogContext; // store dialog context
 
   void _handleGoogleSignIn() async {
     try {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => LoadingScreen(message: "Signing in"),
+        builder: (BuildContext ctx) {
+          dialogContext = ctx;
+          return const LoadingScreen(message: "Signing in");
+        },
       );
       print("Signing in with Google...");
       final userCredential = await _authService.signInWithGoogle();
 
-      if (!mounted) return; // If widgets is no longer in the tree, stop here.
-      Navigator.of(context).pop();
+      if (dialogContext != null) {
+        Navigator.of(dialogContext!).pop();
+      }
 
       if (userCredential == null) {
         ScaffoldMessenger.of(
@@ -39,7 +44,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      Navigator.of(context).pop();
+      if (dialogContext != null) {
+        Navigator.of(dialogContext!).pop();
+      }
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error: ${e.toString()}")));

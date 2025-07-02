@@ -1,3 +1,5 @@
+library;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8,12 +10,41 @@ import 'package:iot_water_monitor/screens/phoneVerify/phone_verification_screen.
 import 'package:iot_water_monitor/screens/splash/splash_screen.dart';
 import 'package:iot_water_monitor/screens/wrapper.dart';
 import 'package:iot_water_monitor/services/firebase_service/firebase_messaging_service.dart';
+import 'package:iot_water_monitor/test.dart';
+import 'package:iot_water_monitor/widgets/danger_alert_widget.dart';
 import 'firebase_options.dart';
 import 'package:flutter/services.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
+
+String? pendingDangerAlertId;
+// String? pendingInitialSensorDataId;
+// RemoteMessage? initialMessage;
+
+bool isAlertShowing = false;
+
+void showDangerAlert(String sensorDataId) {
+  if (isAlertShowing) return;
+
+  final context = navigatorKey.currentState?.overlay?.context;
+  if (context != null) {
+    isAlertShowing = true;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DangerAlertWidget(
+          sensorDataId: sensorDataId,
+          onAcknowledge: () {
+            Navigator.of(context).pop();
+            isAlertShowing = false;
+          },
+        ),
+      ),
+    );
+  }
+}
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,14 +76,53 @@ Future<void> main() async {
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
+  // Create the critical notification channel
+  const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'critical_channel_id',
+    'Danger Alerts',
+    description: 'Critical danger alerts that require immediate attention',
+    importance: Importance.max,
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound('alarm'),
+  );
+
+  final androidImplementation =
+  flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>();
+  await androidImplementation?.createNotificationChannel(channel);
+
   // Initialize Firebase Messaging Listener
   await initFirebaseMessaging();
 
+  // initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  // print('[DEBUG] initialMessage: ${initialMessage?.data}');
+  //
+  // if (initialMessage != null) {
+  //   pendingInitialSensorDataId = initialMessage!.data['sensorDataId'];
+  // }
+
   runApp(const MyApp());
+
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,11 +146,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/alerts': (context) => const AlertHistoryScreen(),
-      },
+      home: Wrapper(),
     );
   }
 }

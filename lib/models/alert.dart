@@ -5,6 +5,7 @@ class Alert {
   final String sensorDataId;
   final String alertLevel; // e.g., "ALERT", "DANGER"
   final Timestamp timestamp;
+  final Timestamp? resolvedAt;
   final Map<String, AlertMethodStatus> methods; // delivery method status
   final bool acknowledged;
   final DateTime? acknowledgedAt;
@@ -15,6 +16,7 @@ class Alert {
     required this.sensorDataId,
     required this.alertLevel,
     required this.timestamp,
+    this.resolvedAt,
     required this.methods,
     this.acknowledged = false,
     this.acknowledgedAt,
@@ -27,6 +29,7 @@ class Alert {
       sensorDataId: map['sensorDataId'] ?? '',
       alertLevel: map['alertLevel'] ?? '',
       timestamp: map['timestamp'] as Timestamp,
+      resolvedAt: map['resolvedAt'] as Timestamp?,
       methods: (map['methods'] as Map<String, dynamic>? ?? {}).map(
             (key, value) => MapEntry(
           key,
@@ -46,6 +49,7 @@ class Alert {
       'sensorDataId': sensorDataId,
       'alertLevel': alertLevel,
       'timestamp': timestamp,
+      'resolvedAt': resolvedAt,
       'methods': methods.map((key, value) => MapEntry(key, value.toMap())),
       'acknowledged': acknowledged,
       'acknowledgedAt': acknowledgedAt != null ? Timestamp.fromDate(acknowledgedAt!) : null,

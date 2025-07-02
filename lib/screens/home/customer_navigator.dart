@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:iot_water_monitor/screens/users/user/community_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/home_screen.dart';
 import 'package:iot_water_monitor/screens/users/user/profile_screen.dart';
-
+import '../../main.dart';
+import '../../services/firebase_service/firebase_messaging_service.dart';
 import '../../services/firebase_service/firebase_service.dart';
 import '../alert/alert_history_screen.dart';
 import '../alert/sensor_data_screen.dart';
 
 class CustomerNavigator extends StatefulWidget {
-  const CustomerNavigator({super.key});
+  final String? initialAlertSensorDataId;
+  const CustomerNavigator({super.key, this.initialAlertSensorDataId});
 
   @override
   State<CustomerNavigator> createState() => _CustomerNavigatorState();
 }
 
-class _CustomerNavigatorState extends State<CustomerNavigator> {
+class _CustomerNavigatorState extends State<CustomerNavigator> with WidgetsBindingObserver {
   final _firebaseService = FirebaseService();
   int _selectedIndex = 0;
   List<Widget> _pages = [];
@@ -23,11 +25,35 @@ class _CustomerNavigatorState extends State<CustomerNavigator> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    if (pendingDangerAlertId != null) {
+      Future.delayed(Duration.zero, () {
+        showDangerAlert(pendingDangerAlertId!);
+        pendingDangerAlertId = null;
+      });
+    }
+
     _pages = [
       HomeScreen(),
       SensorDataScreen(),
       const ProfileScreen(),
     ];
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // This runs when app goes to/resumes from background
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print("LIFECYCLE STATE: $state");
+    if (state == AppLifecycleState.resumed) {
+      checkUnacknowledgedAlerts();
+    }
   }
 
   @override

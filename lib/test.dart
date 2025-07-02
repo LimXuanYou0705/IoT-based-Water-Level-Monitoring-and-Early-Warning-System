@@ -1,20 +1,25 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-final CollectionReference _sensorDataCollection = FirebaseFirestore.instance.collection('sensorData');
+// Reference to the 'alerts' collection in Firestore
+final CollectionReference _alertsCollection = FirebaseFirestore.instance.collection('alerts');
 
-Future<void> addSeenFieldToAllRecords() async {
-  print('Starting migration: Adding "seen: false" to all sensor data records...');
+/// Updates all documents in the 'alerts' collection.
+/// It adds a new field 'resolvedAt' with a null value
+/// for every document in the collection.
+Future<void> addResolvedAtFieldToAlerts() async {
+  print('Starting migration: Adding "resolvedAt: null" to ALL alerts records...');
 
   try {
-    final QuerySnapshot snapshot = await _sensorDataCollection.get();
+    // Query for all documents in the 'alerts' collection
+    final QuerySnapshot snapshot = await _alertsCollection.get();
 
     if (snapshot.docs.isEmpty) {
-      print('No sensor data records found to update.');
+      print('No alerts records found to update.');
       return;
     }
 
-    const int batchSize = 400;
+    const int batchSize = 400; // Firestore recommends batch sizes of 500 maximum
     int processedCount = 0;
     WriteBatch batch = FirebaseFirestore.instance.batch();
 
@@ -22,24 +27,31 @@ Future<void> addSeenFieldToAllRecords() async {
       final DocumentSnapshot doc = snapshot.docs[i];
       final DocumentReference docRef = doc.reference;
 
-      batch.update(docRef, {'seen': false});
+      // Update the document to set 'resolvedAt' to null.
+      // If this field doesn't exist, it will be created.
+      // If it exists, its value will be updated to null.
+      batch.update(docRef, {'resolvedAt': null});
 
+      // Commit the batch periodically to avoid exceeding batch size limits
       if ((i + 1) % batchSize == 0 || (i + 1) == snapshot.docs.length) {
         await batch.commit();
-        processedCount += (i + 1) % batchSize == 0 ? batchSize : (i + 1) % batchSize;
+        processedCount += ((i + 1) % batchSize == 0) ? batchSize : (snapshot.docs.length % batchSize == 0 ? batchSize : snapshot.docs.length % batchSize);
         print('Committed batch. Processed $processedCount of ${snapshot.docs.length} documents.');
 
+        // Start a new batch for the next set of documents
         batch = FirebaseFirestore.instance.batch();
       }
     }
 
-    print('Migration complete: Successfully added "seen: false" to all ${snapshot.docs.length} records.');
+    print('Migration complete: Successfully added "resolvedAt: null" for all ${snapshot.docs.length} alerts records.');
 
   } catch (e) {
     print('Error during migration: $e');
+    rethrow; // Re-throw the error so it can be caught by the UI
   }
 }
 
+/// A Flutter screen to trigger and display the status of the data migration.
 class MigrationScreen extends StatefulWidget {
   const MigrationScreen({super.key});
 
@@ -48,9 +60,10 @@ class MigrationScreen extends StatefulWidget {
 }
 
 class _MigrationScreenState extends State<MigrationScreen> {
-  bool _isMigrating = false; // To disable the button during migration
-  String _migrationStatus = "Ready to run migration."; // To display status
+  bool _isMigrating = false; // Controls button state during migration
+  String _migrationStatus = "Ready to run migration."; // Displays current status
 
+  /// Initiates the data migration process.
   void _runMigration() async {
     setState(() {
       _isMigrating = true;
@@ -58,7 +71,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
     });
 
     try {
-      await addSeenFieldToAllRecords();
+      await addResolvedAtFieldToAlerts(); // Call the updated migration function
       setState(() {
         _migrationStatus = "Migration completed successfully!";
       });
@@ -77,7 +90,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Data Migration Tool'),
+        title: const Text('Alerts Data Migration Tool'),
       ),
       body: Center(
         child: Padding(
@@ -86,7 +99,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'This tool will add a "seen: false" field to all existing sensor data records in your Firestore collection. This is typically a one-time operation.',
+                'This tool will add a new field "resolvedAt" with a null value to ALL existing alert records in your Firestore "alerts" collection. This is typically a one-time operation.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -120,7 +133,7 @@ class _MigrationScreenState extends State<MigrationScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'WARNING: This operation directly modifies your database. Please ensure you have backed up your data and understand the implications before proceeding, especially in a production environment.',
+                'WARNING: This operation directly modifies your database. It will add/update the "resolvedAt" field for ALL documents in the "alerts" collection. Please ensure you have backed up your data and understand the implications before proceeding, especially in a production environment.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange, fontStyle: FontStyle.italic),
               ),

@@ -1,12 +1,106 @@
+import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:vibration/vibration.dart';
 
-class DangerAlertWidget extends StatelessWidget {
+class DangerAlertWidget extends StatefulWidget {
+  final String sensorDataId;
   final VoidCallback onAcknowledge;
 
-  const DangerAlertWidget({super.key, required this.onAcknowledge});
+  const DangerAlertWidget({
+    super.key,
+    required this.sensorDataId,
+    required this.onAcknowledge,
+  });
+
+  @override
+  State<DangerAlertWidget> createState() => _DangerAlertWidgetState();
+}
+
+class _DangerAlertWidgetState extends State<DangerAlertWidget> {
+  bool _loading = true;
+  final AudioPlayer _player = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    playAlarmSound();
+    startVibration();
+    _checkAcknowledgement();
+  }
+
+  Future<void> playAlarmSound() async {
+    await _player.setReleaseMode(ReleaseMode.loop);
+    await _player.play(AssetSource('sounds/alarm.mp3'));
+  }
+
+  Future<void> stopAlarmSound() async {
+    await _player.stop();
+  }
+
+  Future<void> startVibration() async {
+    if (await Vibration.hasVibrator()) {
+      Vibration.vibrate(pattern: [500, 1000, 500, 1000], repeat: 0);
+    }
+  }
+
+  Future<void> stopVibration() async {
+    if (await Vibration.hasVibrator()) {
+      Vibration.cancel();
+    }
+  }
+
+  Future<void> _checkAcknowledgement() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('alerts')
+        .where('sensorDataId', isEqualTo: widget.sensorDataId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final alert = snapshot.docs.first;
+      final data = alert.data();
+      final acknowledged = data['acknowledged'] == true;
+
+      if (acknowledged) {
+        Navigator.of(context).pop();
+        return;
+      }
+    }
+
+    setState(() => _loading = false);
+  }
+
+  Future<void> _acknowledgeAlert() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('alerts')
+        .where('sensorDataId', isEqualTo: widget.sensorDataId)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      final docRef = snapshot.docs.first.reference;
+      await docRef.update({
+        'acknowledged': true,
+        'acknowledgedAt': FieldValue.serverTimestamp(),
+        'methods.push.acknowledged': true,
+      });
+    }
+
+    await stopAlarmSound();
+    await stopVibration();
+
+    widget.onAcknowledge();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -15,17 +109,17 @@ class DangerAlertWidget extends StatelessWidget {
           children: [
             Center(child: AnimatedPulse()),
             Positioned(
-              bottom: 30,
-              right: 20,
-              child: ElevatedButton.icon(
-                onPressed: onAcknowledge,
-                icon: Icon(Icons.check),
-                label: Text("Acknowledge"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-              )
+                bottom: 30,
+                right: 20,
+                child: ElevatedButton.icon(
+                  onPressed: _acknowledgeAlert,
+                  icon: Icon(Icons.check),
+                  label: Text("Acknowledge"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                )
             ),
           ],
         ),
