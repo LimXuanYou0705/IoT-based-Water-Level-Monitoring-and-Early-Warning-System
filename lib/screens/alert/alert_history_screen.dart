@@ -69,7 +69,7 @@ class _AlertHistoryScreenState extends State<AlertHistoryScreen> {
                 margin: EdgeInsets.all(8),
                 child: ListTile(
                   leading: Icon(iconData, color: iconColor),
-                  title: Text(formatTimestamp(alert.timestamp as Timestamp)),
+                  title: Text(formatTimestamp(alert.timestamp)),
                   trailing: Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: alert.acknowledged

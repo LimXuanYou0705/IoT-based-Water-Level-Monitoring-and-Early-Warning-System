@@ -16,10 +16,30 @@ class CustomerNavigator extends StatefulWidget {
   State<CustomerNavigator> createState() => _CustomerNavigatorState();
 }
 
-class _CustomerNavigatorState extends State<CustomerNavigator> with WidgetsBindingObserver {
+class _CustomerNavigatorState extends State<CustomerNavigator>
+    with WidgetsBindingObserver {
   final _firebaseService = FirebaseService();
   int _selectedIndex = 0;
-  List<Widget> _pages = [];
+  late List<Widget> _pages;
+  final List<String> _titles = ["Home", "Community", "Profile"];
+  final List<NavigationDestination> _navItems = [
+    const NavigationDestination(
+      icon: Icon(Icons.home_outlined, size: 20),
+      selectedIcon: Icon(Icons.home, size: 20),
+      label: 'Home',
+    ),
+    const NavigationDestination(
+      icon: Icon(Icons.people_alt_outlined, size: 20),
+      selectedIcon: Icon(Icons.people_alt, size: 20),
+      label: 'Community',
+    ),
+    const NavigationDestination(
+      icon: Icon(Icons.person_outline_rounded, size: 20),
+      selectedIcon: Icon(Icons.person_rounded, size: 20),
+      label: 'Profile',
+    ),
+  ];
+
 
   @override
   void initState() {
@@ -34,11 +54,8 @@ class _CustomerNavigatorState extends State<CustomerNavigator> with WidgetsBindi
       });
     }
 
-    _pages = [
-      HomeScreen(),
-      SensorDataScreen(),
-      const ProfileScreen(),
-    ];
+    // Setup bottom nav pages
+    _pages = [HomeScreen(), SensorDataScreen(), const ProfileScreen()];
   }
 
   @override
@@ -59,121 +76,100 @@ class _CustomerNavigatorState extends State<CustomerNavigator> with WidgetsBindi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0.0,
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        title: Text(_title[_selectedIndex]),
-        centerTitle: true,
-        actions: [
-          StreamBuilder<int>(
-            stream: _firebaseService.getUnseenAlertCount(),
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.notifications,
-                      color: Color(0xFFFAB005),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const AlertHistoryScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  if (count > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFD32F2F),
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '$count',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       body: IndexedStack(index: _selectedIndex, children: _pages),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(height: 1, color: Theme.of(context).colorScheme.outline),
-          Theme(
-            data: Theme.of(context).copyWith(
-              navigationBarTheme: NavigationBarThemeData(
-                labelTextStyle: WidgetStateProperty.all(
-                  const TextStyle(fontSize: 10),
-                ),
-                height: MediaQuery.of(context).size.height * 0.1,
-              ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      scrolledUnderElevation: 0.0,
+      automaticallyImplyLeading: false,
+      elevation: 0,
+      title: Text(_titles[_selectedIndex]),
+      centerTitle: true,
+      actions: [_buildNotificationIcon()],
+    );
+  }
+
+  Widget _buildNotificationIcon() {
+    return StreamBuilder<int>(
+      stream: _firebaseService.getUnseenAlertCount(),
+      builder: (context, snapshot) {
+        final count = snapshot.data ?? 0;
+
+        return Stack(
+          children: [
+            IconButton(
+              onPressed:
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AlertHistoryScreen(),
+                    ),
+                  ),
+              icon: Icon(Icons.notifications, color: const Color(0xFFFAB005)),
             ),
-            child: NavigationBar(
-              indicatorColor: Theme.of(context).colorScheme.secondary,
-              animationDuration: const Duration(seconds: 1),
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                });
-              },
-              destinations: _navBarItems,
-            ),
+            if (count > 0)
+              Positioned(right: 8, top: 8, child: _buildBadge(count)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBadge(int count) {
+    final displayCount = count > 99 ? '99+' : '$count';
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: const BoxDecoration(
+        color: Color(0xFFD32F2F),
+        shape: BoxShape.circle,
+      ),
+      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+      child: Center(
+        child: Text(
+          displayCount,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
           ),
-        ],
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
 
-  final _title = ["Home", "Community", "Profile"];
-
-  // final _pages = [
-  //   const HomeScreen(),
-  //   SensorDataScreen(),
-  //   const ProfileScreen(),
-  // ];
-
-  final _navBarItems = [
-    const NavigationDestination(
-      icon: Icon(Icons.home_outlined, size: 20),
-      selectedIcon: Icon(Icons.home, size: 20),
-      label: 'Home',
-    ),
-    const NavigationDestination(
-      icon: Icon(Icons.people_alt_outlined, size: 20),
-      selectedIcon: Icon(Icons.people_alt, size: 20),
-      label: 'Community',
-    ),
-    const NavigationDestination(
-      icon: Icon(Icons.person_outline_rounded, size: 20),
-      selectedIcon: Icon(Icons.person_rounded, size: 20),
-      label: 'Profile',
-    ),
-  ];
+  Widget _buildBottomNavigationBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        boxShadow:[
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, -2),
+          )
+        ]
+      ),
+      child: NavigationBar(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          indicatorColor: Theme.of(context).colorScheme.secondary.withAlpha((255 * 0.3).round()),
+          elevation: 0,
+          height: MediaQuery.of(context).size.height * 0.09,
+          animationDuration: const Duration(milliseconds: 300),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) {
+            setState(() {
+              _selectedIndex = index;
+            });
+          },
+          destinations: _navItems
+      ),
+    );
+  }
 }

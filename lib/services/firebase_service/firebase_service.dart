@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../models/Alert.dart';
 import '../../models/sensor_data.dart';
 import '../../models/thresholds.dart';
 import '../../models/user.dart';
 
 class FirebaseService {
+  final _auth = FirebaseAuth.instance;
+  final _storage = FirebaseStorage.instance;
   // collections
   final CollectionReference _userCollection = FirebaseFirestore.instance
       .collection('users');
@@ -39,6 +45,31 @@ class FirebaseService {
   }
 
   // User things
+
+  // stream of the current user
+  Stream<AppUser?> streamUserProfile() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
+
+    return _userCollection.doc(uid).snapshots().map((snapshot) {
+      if (snapshot.exists) {
+        return AppUser.fromMap(snapshot.data() as Map<String, dynamic>, snapshot.id);
+      } else {
+        return null;
+      }
+    });
+
+  }
+
+  Future<void> updateUserName(String newName) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await _userCollection.doc(uid).update({
+        'name': newName,
+      });
+    }
+  }
+
   Future<void> createUser(AppUser user) async {
     await _userCollection.doc(user.uid).set(user.toMap());
   }
@@ -159,4 +190,47 @@ class FirebaseService {
       'acknowledgedAt': Timestamp.now(),
     });
   }
+
+  // Uploads profile picture to Firebase Storage and returns the download URL
+  Future<String> uploadProfilePicture(File imageFile) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception("User not logged in");
+
+    final ref = _storage.ref().child("profile_pictures/$uid.jpg");
+
+    // Upload the image to Firebase Storage
+    final uploadTask = await ref.putFile(imageFile);
+
+    try {
+      final uploadTask = ref.putFile(imageFile);
+      final snapshot = await uploadTask;
+
+      if (snapshot.state == TaskState.success) {
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        return downloadUrl;
+      } else {
+        throw Exception("Upload failed with state: ${snapshot.state}");
+      }
+    } catch (e) {
+      print("Upload failed: $e");
+      rethrow;
+    }
+  }
+
+
+  // Updates user's Firestore document with new photo URL
+  Future<void> updateUserProfilePicture(String downloadUrl) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception("User not logged in");
+
+    try {
+      await _userCollection.doc(uid).update({
+        "profilePicture": downloadUrl,
+      });
+    } catch (e) {
+      print("updateUserProfilePicture error: $e");
+      rethrow;
+    }
+  }
+
 }

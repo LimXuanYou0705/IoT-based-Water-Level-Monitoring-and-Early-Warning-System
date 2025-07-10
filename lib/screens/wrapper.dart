@@ -37,20 +37,23 @@ class _WrapperState extends State<Wrapper> {
     final now = DateTime.now();
     final cutoff = now.subtract(const Duration(minutes: 15));
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('alerts')
-        .where('acknowledged', isEqualTo: false)
-        .where('alertLevel', isEqualTo: 'DANGER')
-        .where('methods.push.sent', isEqualTo: true)
-        .where('methods.push.acknowledged', isEqualTo: null)
-        .where('methods.push.sentAt', isGreaterThan: cutoff)
-        .orderBy('timestamp', descending: true)
-        .limit(1)
-        .get();
+    final snapshot =
+        await FirebaseFirestore.instance
+            .collection('alerts')
+            .where('acknowledged', isEqualTo: false)
+            .where('alertLevel', isEqualTo: 'DANGER')
+            .where('methods.push.sent', isEqualTo: true)
+            .where('methods.push.acknowledged', isEqualTo: null)
+            .where('methods.push.sentAt', isGreaterThan: cutoff)
+            .orderBy('timestamp', descending: true)
+            .limit(1)
+            .get();
 
     if (snapshot.docs.isNotEmpty) {
       pendingDangerAlertId = snapshot.docs.first.id;
-      print("Startup: Unacknowledged danger alert found: $pendingDangerAlertId");
+      print(
+        "Startup: Unacknowledged danger alert found: $pendingDangerAlertId",
+      );
     } else {
       print("No recent danger alert found.");
     }
@@ -70,15 +73,14 @@ class _WrapperState extends State<Wrapper> {
 
         if (user == null) return const LoginScreen();
 
-        return StreamBuilder<DocumentSnapshot>(
-          stream:
+        return FutureBuilder<DocumentSnapshot>(
+          future:
               FirebaseFirestore.instance
                   .collection('users')
                   .doc(user.uid)
-                  .snapshots(),
+                  .get(),
           builder: (context, userSnapshot) {
-            if (!_delayFinished ||
-                userSnapshot.connectionState == ConnectionState.waiting) {
+            if (!_delayFinished || userSnapshot.connectionState != ConnectionState.done) {
               return const SplashScreen();
             }
 
@@ -94,14 +96,13 @@ class _WrapperState extends State<Wrapper> {
             } else {
               // Run alert check before showing CustomerNavigator
               return FutureBuilder(
-                  future: checkDangerAlertAtStartup(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState != ConnectionState.done) {
-                      return const SplashScreen();
-                    }
-
-                    return const CustomerNavigator();
+                future: checkDangerAlertAtStartup(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const SplashScreen();
                   }
+                  return const CustomerNavigator();
+                },
               );
             }
           },

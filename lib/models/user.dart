@@ -62,4 +62,34 @@ class AppUser {
       isPhoneVerified: map['isPhoneVerified'] ?? false,
     );
   }
+
+  AppUser copyWith({
+    String? uid,
+    String? name,
+    String? email,
+    String? phone,
+    String? role,
+    String? profilePicture,
+    int? contributionScore,
+    String? status,
+    List<String>? alertChannels,
+    DateTime? createdAt,
+    DateTime? lastLogin,
+    bool? isPhoneVerified,
+  }) {
+    return AppUser(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      role: role ?? this.role,
+      profilePicture: profilePicture ?? this.profilePicture,
+      contributionScore: contributionScore ?? this.contributionScore,
+      status: status ?? this.status,
+      alertChannels: alertChannels ?? this.alertChannels,
+      createdAt: createdAt ?? this.createdAt,
+      lastLogin: lastLogin ?? this.lastLogin,
+      isPhoneVerified: isPhoneVerified ?? this.isPhoneVerified,
+    );
+  }
 }
