@@ -1,13 +1,13 @@
 library;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:iot_water_monitor/screens/alert/alert_history_screen.dart';
-import 'package:iot_water_monitor/screens/auth/login_screen.dart';
-import 'package:iot_water_monitor/screens/phoneVerify/phone_verification_screen.dart';
-import 'package:iot_water_monitor/screens/splash/splash_screen.dart';
+import 'package:iot_water_monitor/screens/users/admin/add_incident_type.dart';
+import 'package:iot_water_monitor/screens/users/user/achievements.dart';
+import 'package:iot_water_monitor/screens/users/user/alert_preference.dart';
+import 'package:iot_water_monitor/screens/users/user/leaderboard.dart';
+import 'package:iot_water_monitor/screens/users/user/settings.dart';
 import 'package:iot_water_monitor/screens/wrapper.dart';
 import 'package:iot_water_monitor/services/firebase_service/firebase_messaging_service.dart';
 import 'package:iot_water_monitor/test.dart';
@@ -146,7 +146,16 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: Wrapper(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const Wrapper(),
+        '/settings': (context) => const SettingsScreen(),
+        '/setupAlerts': (context) => const SetupAlertScreen(),
+        '/leaderboard': (context) => const LeaderboardScreen(),
+        '/achievements': (context) => const AchievementsScreen(),
+        '/addIncidentType': (context) => const AddIncidentTypeScreen(),
+        // '/reviewPosts': (context) => const ReviewPostsScreen(),
+      },
     );
   }
 }

@@ -6,6 +6,7 @@ import '../../../models/user.dart';
 import '../../../services/firebase_service/auth_service.dart';
 import '../../../services/firebase_service/firebase_service.dart';
 import '../../../widgets/avatar_widget.dart';
+import '../../../widgets/profile_list_tile.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -164,13 +165,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 const SizedBox(height: 30),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: const Text("Log Out"),
-                  onTap: () {
-                    _authService.signOut();
-                  },
+                Column(
+                  children: [
+                    const Divider(),
+                    ProfileOptionTile(
+                      icon: Icons.notifications_active_rounded,
+                      label: "Setup Alerts",
+                      onTap: () => Navigator.pushNamed(context, '/setupAlerts'),
+                    ),
+                    ProfileOptionTile(
+                      icon: Icons.emoji_events_rounded,
+                      label: "Achievements",
+                      onTap:
+                          () => Navigator.pushNamed(context, '/achievements'),
+                    ),
+                    ProfileOptionTile(
+                      icon: Icons.leaderboard_rounded,
+                      label: "Leaderboard",
+                      onTap: () => Navigator.pushNamed(context, '/leaderboard'),
+                    ),
+                    ProfileOptionTile(
+                      icon: Icons.settings,
+                      label: "Settings",
+                      onTap: () => Navigator.pushNamed(context, '/settings'),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: Icon(
+                        Icons.logout,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: const Text("Log Out"),
+                      onTap: () {
+                        _authService.signOut();
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

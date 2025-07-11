@@ -49,29 +49,80 @@ class _ChangePhotoWidgetState extends State<ChangePhotoWidget> {
   void _showPickerOptions() {
     showModalBottomSheet(
       context: context,
-      builder:
-          (_) => SafeArea(
-            child: Wrap(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.photo_camera),
-                  title: const Text('Take Photo'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(ImageSource.camera);
-                  },
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.3, // % of screen shown initially
+          minChildSize: 0.25,
+          maxChildSize: 0.5,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 5,
+                        margin: const EdgeInsets.only(top: 8, bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const Text(
+                        'Change Profile Picture',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.blue,
+                        ),
+                        title: const Text('Take Photo'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.camera);
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.photo_library_rounded,
+                          color: Colors.green,
+                        ),
+                        title: const Text('Choose from Gallery'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.gallery);
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.close, color: Colors.red),
+                        title: const Text('Cancel'),
+                        onTap: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Choose from Gallery'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _pickImage(ImageSource.gallery);
-                  },
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

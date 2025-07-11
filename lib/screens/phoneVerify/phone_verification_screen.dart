@@ -138,7 +138,7 @@ class _PhoneVerificationScreenState extends State<PhoneVerificationScreen> {
           role: 'user',
           contributionScore: 0,
           status: 'active',
-          alertChannels: [],
+          alertChannels: ['push','sms','email'],
           createdAt: DateTime.now(),
           isPhoneVerified: true,
         );

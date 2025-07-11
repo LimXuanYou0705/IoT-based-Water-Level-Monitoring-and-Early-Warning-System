@@ -93,6 +93,22 @@ class FirebaseService {
     return null;
   }
 
+  Future<List<String>> getAlertChannels(String uid) async {
+    final doc = await _userCollection.doc(uid).get();
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      final channels = data['alertChannels'] ?? [];
+      return List<String>.from(channels);
+    }
+    return [];
+  }
+
+  Future<void> updateAlertChannels(String uid, List<String> channels) async {
+    await _userCollection.doc(uid).update({
+      'alertChannels': channels,
+    });
+  }
+
   // Sensor data things
   // get list of sensor data record
   Stream<List<SensorData>> getSensorData() {
