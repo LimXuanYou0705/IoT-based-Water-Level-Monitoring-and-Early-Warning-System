@@ -1,145 +1,139 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-// Reference to the 'alerts' collection in Firestore
-final CollectionReference _alertsCollection = FirebaseFirestore.instance.collection('alerts');
+import 'models/thresholds.dart';
 
-/// Updates all documents in the 'alerts' collection.
-/// It adds a new field 'resolvedAt' with a null value
-/// for every document in the collection.
-Future<void> addResolvedAtFieldToAlerts() async {
-  print('Starting migration: Adding "resolvedAt: null" to ALL alerts records...');
-
-  try {
-    // Query for all documents in the 'alerts' collection
-    final QuerySnapshot snapshot = await _alertsCollection.get();
-
-    if (snapshot.docs.isEmpty) {
-      print('No alerts records found to update.');
-      return;
-    }
-
-    const int batchSize = 400; // Firestore recommends batch sizes of 500 maximum
-    int processedCount = 0;
-    WriteBatch batch = FirebaseFirestore.instance.batch();
-
-    for (int i = 0; i < snapshot.docs.length; i++) {
-      final DocumentSnapshot doc = snapshot.docs[i];
-      final DocumentReference docRef = doc.reference;
-
-      // Update the document to set 'resolvedAt' to null.
-      // If this field doesn't exist, it will be created.
-      // If it exists, its value will be updated to null.
-      batch.update(docRef, {'resolvedAt': null});
-
-      // Commit the batch periodically to avoid exceeding batch size limits
-      if ((i + 1) % batchSize == 0 || (i + 1) == snapshot.docs.length) {
-        await batch.commit();
-        processedCount += ((i + 1) % batchSize == 0) ? batchSize : (snapshot.docs.length % batchSize == 0 ? batchSize : snapshot.docs.length % batchSize);
-        print('Committed batch. Processed $processedCount of ${snapshot.docs.length} documents.');
-
-        // Start a new batch for the next set of documents
-        batch = FirebaseFirestore.instance.batch();
-      }
-    }
-
-    print('Migration complete: Successfully added "resolvedAt: null" for all ${snapshot.docs.length} alerts records.');
-
-  } catch (e) {
-    print('Error during migration: $e');
-    rethrow; // Re-throw the error so it can be caught by the UI
-  }
-}
-
-/// A Flutter screen to trigger and display the status of the data migration.
-class MigrationScreen extends StatefulWidget {
-  const MigrationScreen({super.key});
+class ThresholdEditScreen extends StatefulWidget {
+  const ThresholdEditScreen({super.key});
 
   @override
-  State<MigrationScreen> createState() => _MigrationScreenState();
+  State<ThresholdEditScreen> createState() => _ThresholdEditScreenState();
 }
 
-class _MigrationScreenState extends State<MigrationScreen> {
-  bool _isMigrating = false; // Controls button state during migration
-  String _migrationStatus = "Ready to run migration."; // Displays current status
+class _ThresholdEditScreenState extends State<ThresholdEditScreen> {
+  // Controllers for all text fields
+  final _highDangerController = TextEditingController();
+  final _highAlertController = TextEditingController();
+  final _highSafeController = TextEditingController();
 
-  /// Initiates the data migration process.
-  void _runMigration() async {
-    setState(() {
-      _isMigrating = true;
-      _migrationStatus = "Migration in progress...";
-    });
+  final _lowDangerController = TextEditingController();
+  final _lowAlertController = TextEditingController();
+  final _lowSafeController = TextEditingController();
 
-    try {
-      await addResolvedAtFieldToAlerts(); // Call the updated migration function
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentThresholds();
+  }
+
+  Future<void> _loadCurrentThresholds() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('thresholds')
+        .doc('region_settings')
+        .get();
+
+    if (snapshot.exists) {
+      final thresholds = RegionThresholds.fromMap(snapshot.data()!);
+
       setState(() {
-        _migrationStatus = "Migration completed successfully!";
-      });
-    } catch (e) {
-      setState(() {
-        _migrationStatus = "Migration failed: $e";
-      });
-    } finally {
-      setState(() {
-        _isMigrating = false;
+        _highDangerController.text = thresholds.highRegion.danger.toString();
+        _highAlertController.text = thresholds.highRegion.alert.toString();
+        _highSafeController.text = thresholds.highRegion.safe.toString();
+
+        _lowDangerController.text = thresholds.lowRegion.danger.toString();
+        _lowAlertController.text = thresholds.lowRegion.alert.toString();
+        _lowSafeController.text = thresholds.lowRegion.safe.toString();
       });
     }
+  }
+
+  void _saveThresholds() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final regionThresholds = RegionThresholds(
+      highRegion: Thresholds(
+        danger: double.parse(_highDangerController.text),
+        alert: double.parse(_highAlertController.text),
+        safe: double.parse(_highSafeController.text),
+      ),
+      lowRegion: Thresholds(
+        danger: double.parse(_lowDangerController.text),
+        alert: double.parse(_lowAlertController.text),
+        safe: double.parse(_lowSafeController.text),
+      ),
+    );
+
+    // Save to Firestore
+    FirebaseFirestore.instance
+        .collection('thresholds')
+        .doc('region_settings')
+        .set(regionThresholds.toMap())
+        .then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saved successfully')),
+      );
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save: $error')),
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Alerts Data Migration Tool'),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+      appBar: AppBar(title: const Text('Edit Thresholds')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
             children: [
-              Text(
-                'This tool will add a new field "resolvedAt" with a null value to ALL existing alert records in your Firestore "alerts" collection. This is typically a one-time operation.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium,
+              const Text(
+                'High Region',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 30),
-              ElevatedButton.icon(
-                onPressed: _isMigrating ? null : _runMigration, // Disable button while migrating
-                icon: _isMigrating
-                    ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                    : const Icon(Icons.play_arrow),
-                label: Text(_isMigrating ? 'Running...' : 'Run Data Migration'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: const TextStyle(fontSize: 16),
-                ),
+              _buildTextField(_highDangerController, 'High Danger Threshold'),
+              _buildTextField(_highAlertController, 'High Alert Threshold'),
+              _buildTextField(_highSafeController, 'High Safe Threshold'),
+
+              const SizedBox(height: 24),
+
+              const Text(
+                'Low Region',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 20),
-              Text(
-                _migrationStatus,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _migrationStatus.contains('failed') ? Colors.red : (_migrationStatus.contains('completed') ? Colors.green : Colors.black87),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'WARNING: This operation directly modifies your database. It will add/update the "resolvedAt" field for ALL documents in the "alerts" collection. Please ensure you have backed up your data and understand the implications before proceeding, especially in a production environment.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.orange, fontStyle: FontStyle.italic),
+              _buildTextField(_lowDangerController, 'Low Danger Threshold'),
+              _buildTextField(_lowAlertController, 'Low Alert Threshold'),
+              _buildTextField(_lowSafeController, 'Low Safe Threshold'),
+
+              const SizedBox(height: 24),
+
+              ElevatedButton(
+                onPressed: _saveThresholds,
+                child: const Text('Save'),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(labelText: label),
+        validator: (value) {
+          if (value == null || value.isEmpty) return '$label is required';
+          if (double.tryParse(value) == null) return 'Enter a valid number';
+          return null;
+        },
       ),
     );
   }

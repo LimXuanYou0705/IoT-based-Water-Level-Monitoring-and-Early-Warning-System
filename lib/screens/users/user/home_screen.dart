@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: StreamBuilder<double>(
-        stream: _firebaseService.getLatestWaterLevel(),
+        stream: _firebaseService.getLowRegionLatestWaterLevel(),
         builder: (context, distanceSnapshot) {
           if (!distanceSnapshot.hasData) {
             return Center(child: CircularProgressIndicator());
@@ -42,11 +42,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final distance = distanceSnapshot.data!;
 
-          return StreamBuilder<Thresholds>(
-            stream: _firebaseService.getThresholds(),
+          return StreamBuilder<RegionThresholds>(
+            stream: _firebaseService.getRegionThresholds(),
             builder: (context, thresholdSnapshot) {
-              if (!thresholdSnapshot.hasData) {
+              if (thresholdSnapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
+              }
+
+              if (thresholdSnapshot.hasError) {
+                return Text('Error: ${thresholdSnapshot.error}');
+              }
+
+              if (!thresholdSnapshot.hasData) {
+                return Text('No data yet');
               }
 
               final thresholds = thresholdSnapshot.data!;
@@ -58,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   return HomeScreenBody(
                     distance: distance,
-                    thresholds: thresholds,
+                    thresholds: thresholds.lowRegion,
                     currentTime: currentTime,
                     sensorStatus: sensorStatus ? 'Online' : 'Offline',
                   );

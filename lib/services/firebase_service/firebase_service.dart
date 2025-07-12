@@ -22,8 +22,8 @@ class FirebaseService {
 
   // document
   final DocumentReference _thresholdsDoc = FirebaseFirestore.instance
-      .collection('config')
-      .doc('thresholds');
+      .collection('thresholds')
+      .doc('region_settings');
 
   // store FCM tokens
   Future<void> saveFcmToken(String userId) async {
@@ -53,20 +53,20 @@ class FirebaseService {
 
     return _userCollection.doc(uid).snapshots().map((snapshot) {
       if (snapshot.exists) {
-        return AppUser.fromMap(snapshot.data() as Map<String, dynamic>, snapshot.id);
+        return AppUser.fromMap(
+          snapshot.data() as Map<String, dynamic>,
+          snapshot.id,
+        );
       } else {
         return null;
       }
     });
-
   }
 
   Future<void> updateUserName(String newName) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      await _userCollection.doc(uid).update({
-        'name': newName,
-      });
+      await _userCollection.doc(uid).update({'name': newName});
     }
   }
 
@@ -104,16 +104,14 @@ class FirebaseService {
   }
 
   Future<void> updateAlertChannels(String uid, List<String> channels) async {
-    await _userCollection.doc(uid).update({
-      'alertChannels': channels,
-    });
+    await _userCollection.doc(uid).update({'alertChannels': channels});
   }
 
   // Sensor data things
-  // get list of sensor data record
+  // Get list of sensor data records
   Stream<List<SensorData>> getSensorData() {
     return _sensorDataCollection
-        .orderBy('timestamp', descending: true) // Sort by timestamp in order
+        .orderBy('timestamp', descending: true)
         .limit(20)
         .snapshots()
         .map((snapshot) {
@@ -126,60 +124,103 @@ class FirebaseService {
         });
   }
 
-  // get latest water level data
-  Stream<double> getLatestWaterLevel() {
+  // Get latest water level for high region
+  Stream<double> getHighRegionLatestWaterLevel() {
     return getSensorData().map((dataList) {
       if (dataList.isNotEmpty) {
-        return dataList.first.distance; // Now is desc so it get the latest data
+        return dataList.first.distance1;
       } else {
-        return 0.0; // default if no data
+        return 0.0;
+      }
+    });
+  }
+  // Get latest water level for low region
+  Stream<double> getLowRegionLatestWaterLevel() {
+    return getSensorData().map((dataList) {
+      if (dataList.isNotEmpty) {
+        return dataList.first.distance2;
+      } else {
+        return 0.0;
       }
     });
   }
 
+  // Get alert history based on either high or low region being ALERT/DANGER
   Stream<List<SensorData>> getAlertHistory() {
     return _sensorDataCollection
-        .where('level', whereIn: ['ALERT', 'DANGER'])
         .orderBy('timestamp', descending: true)
-        .limit(50)
+        .limit(30)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return SensorData.fromMap(
-              doc.data() as Map<String, dynamic>,
-              doc.id,
-            );
-          }).toList();
+          return snapshot.docs
+              .map((doc) {
+                final data = SensorData.fromMap(
+                  doc.data() as Map<String, dynamic>,
+                  doc.id,
+                );
+                if (['ALERT', 'DANGER'].contains(data.levelHighRegion) ||
+                    ['ALERT', 'DANGER'].contains(data.levelLowRegion)) {
+                  return data;
+                }
+                return null;
+              })
+              .whereType<SensorData>()
+              .toList();
         });
   }
 
-  // Get the number of unseen ALERT or DANGER alerts
+  // Count unseen alerts where either high or low region is ALERT/DANGER
   Stream<int> getUnseenAlertCount() {
     return _sensorDataCollection
-        .where('level', whereIn: ['ALERT', 'DANGER'])
         .where('seen', isEqualTo: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+        .map((snapshot) {
+          return snapshot.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final high = data['levelHighRegion'];
+            final low = data['levelLowRegion'];
+            return ['ALERT', 'DANGER'].contains(high) ||
+                ['ALERT', 'DANGER'].contains(low);
+          }).length;
+        });
   }
 
+  // Mark all unseen ALERT or DANGER alerts as seen
   Future<void> markAllAlertsAsSeen() async {
     final query =
-        await _sensorDataCollection
-            .where('level', whereIn: ['ALERT', 'DANGER'])
-            .where('seen', isEqualTo: false)
-            .get();
+        await _sensorDataCollection.where('seen', isEqualTo: false).get();
 
     for (var doc in query.docs) {
-      await doc.reference.update({'seen': true});
+      final data = doc.data() as Map<String, dynamic>;
+      final high = data['levelHighRegion'];
+      final low = data['levelLowRegion'];
+      if (['ALERT', 'DANGER'].contains(high) ||
+          ['ALERT', 'DANGER'].contains(low)) {
+        await doc.reference.update({'seen': true});
+      }
     }
   }
 
   // Thresholds things
   // get latest thresholds data
-  Stream<Thresholds> getThresholds() {
-    return _thresholdsDoc.snapshots().map((doc) {
-      final data = doc.data() as Map<String, dynamic>?;
-      return Thresholds.fromMap(data ?? {});
+  // Stream<Thresholds> getThresholds() {
+  //   return _thresholdsDoc.snapshots().map((doc) {
+  //     final data = doc.data() as Map<String, dynamic>?;
+  //     return Thresholds.fromMap(data ?? {});
+  //   });
+  // }
+  Stream<RegionThresholds> getRegionThresholds() {
+    return _thresholdsDoc.snapshots().map((docSnapshot) {
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data() as Map<String, dynamic>;
+        return RegionThresholds.fromMap(data);
+      } else {
+        // Return default even if no data
+        return RegionThresholds(
+          highRegion: Thresholds(danger: 25.0, alert: 35.0, safe: 45.0),
+          lowRegion: Thresholds(danger: 10.0, alert: 20.0, safe: 30.0),
+        );
+      }
     });
   }
 
@@ -233,20 +274,16 @@ class FirebaseService {
     }
   }
 
-
   // Updates user's Firestore document with new photo URL
   Future<void> updateUserProfilePicture(String downloadUrl) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception("User not logged in");
 
     try {
-      await _userCollection.doc(uid).update({
-        "profilePicture": downloadUrl,
-      });
+      await _userCollection.doc(uid).update({"profilePicture": downloadUrl});
     } catch (e) {
       print("updateUserProfilePicture error: $e");
       rethrow;
     }
   }
-
 }
